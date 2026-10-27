@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cogan-seeg-preprocessing"
+version = "0.1.0"
+description = "Research tools for Cogan sEEG inventory, channel QC and anatomical preparation"
+requires-python = ">=3.12"
+dependencies = ["numpy>=1.24", "scipy>=1.11", "mne>=1.6", "nibabel>=5.1"]
+
+[project.optional-dependencies]
+dev = ["pytest>=7.4", "edfio>=0.4"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src", "scripts"]

@@ -1,0 +1,244 @@
+"""Existing static bad-contact detector and per-run signature/collector arithmetic. Research defaults require visual review on a new dataset."""
+from __future__ import annotations
+import numpy as np
+SCALE = 1.4826
+SIGMA_FLOOR = 1e-06
+EPS = 1e-09
+SPIKE_SIGMA = 100.0
+SPIKE_CLIP_S = 5.0
+SPIKE_CLIP_FRAC = 0.01
+NOISY_Z = 8.0
+DEAD_RATIO = 0.35
+COHORT_REL_FLOOR = 0.15
+
+def _robust_rows(x: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    """Per-row robust-z and robust spread (rmad) of ``x`` (C, T).
+
+    Returns ``(z, rmad)`` where ``z = (x − median) / max(σ, floor)`` and
+    ``rmad = σ = SCALE · MAD`` per row. float64 internally for stability."""
+    x = np.asarray(x, dtype=np.float64)
+    med = np.median(x, axis=1, keepdims=True)
+    mad = np.median(np.abs(x - med), axis=1, keepdims=True)
+    rmad = SCALE * mad
+    z = (x - med) / np.maximum(rmad, SIGMA_FLOOR)
+    return (z, rmad.ravel())
+
+def cohort_z(v: np.ndarray, rel_floor: float=COHORT_REL_FLOOR) -> np.ndarray:
+    """Cohort-relative robust-z of a per-contact statistic ``v`` (C,).
+
+    Median/MAD taken ACROSS contacts (chronic deviation from peers). The
+    denominator floor ``rel_floor·|median|`` bounds ``z ≥ −1/rel_floor`` — which
+    is exactly why ``dead`` uses a ratio, not this z, on the low tail."""
+    v = np.asarray(v, dtype=np.float64)
+    m = np.median(v)
+    s = max(SCALE * np.median(np.abs(v - m)), rel_floor * abs(m), EPS)
+    return (v - m) / s
+
+def detect_spike(v_filt: np.ndarray, fs: float, sigma: float=SPIKE_SIGMA, clip_s: float=SPIKE_CLIP_S, clip_frac_thresh: float=SPIKE_CLIP_FRAC) -> tuple[np.ndarray, np.ndarray]:
+    """Transient-spike STATIC detector on filtered voltage ``v_filt`` (C, T).
+
+    A clip (``clip_s`` seconds) is corrupted if it contains ≥1 sample with
+    ``|robust-z(dV/dt)| > sigma``. Returns ``(is_static, clip_frac)`` where
+    ``is_static[c] = clip_frac[c] > clip_frac_thresh``. The clip-corruption
+    fraction (not raw event rate) is the burst-robust router."""
+    v_filt = np.asarray(v_filt, dtype=np.float64)
+    C = v_filt.shape[0]
+    g = np.diff(v_filt, axis=1)
+    gz, _ = _robust_rows(g)
+    agz = np.abs(gz)
+    win = max(1, int(round(clip_s * fs)))
+    nwin = agz.shape[1] // win
+    if nwin < 1:
+        clip_frac = np.zeros(C)
+    else:
+        corrupted = (agz[:, :nwin * win].reshape(C, nwin, win) > sigma).any(axis=2)
+        clip_frac = corrupted.mean(axis=1)
+    return (clip_frac > clip_frac_thresh, clip_frac)
+
+def detect_noisy(v_filt: np.ndarray, z_thresh: float=NOISY_Z) -> tuple[np.ndarray, np.ndarray]:
+    """Chronic-high-amplitude STATIC detector. ``cohort-z(rmad) > z_thresh``.
+
+    Returns ``(is_noisy, rmad)``. rmad = robust spread of the filtered voltage
+    per contact (the model's view); cohort-z is across contacts."""
+    _, rmad = _robust_rows(v_filt)
+    return (cohort_z(rmad) > z_thresh, rmad)
+
+def detect_dead(v_filt: np.ndarray, ratio_thresh: float=DEAD_RATIO) -> tuple[np.ndarray, np.ndarray]:
+    """Chronic-attenuation STATIC detector. ``rmad / median_cohort(rmad) < ratio_thresh``.
+
+    Returns ``(is_dead, ratio)``. Scale-free ratio (not cohort-z, which is
+    bounded below); < 0.35 ≈ contact carries < 1/3 the session-typical
+    amplitude = dead / out-of-brain / severely attenuated."""
+    _, rmad = _robust_rows(v_filt)
+    med = np.median(np.asarray(rmad, dtype=np.float64))
+    ratio = np.asarray(rmad, dtype=np.float64) / max(med, EPS)
+    return (ratio < ratio_thresh, ratio)
+
+def static_bad_mask(v_filt: np.ndarray, fs: float) -> dict[str, np.ndarray]:
+    """Run all three detectors on one session's filtered voltage ``(C, T)``.
+
+    Returns per-contact boolean masks ``spike`` / ``noisy`` / ``dead`` and their
+    union ``static`` (the per-session STATIC drop), plus the raw diagnostics
+    (``clip_frac``, ``rmad``, ``dead_ratio``) for provenance dumps."""
+    spike, clip_frac = detect_spike(v_filt, fs)
+    noisy, rmad = detect_noisy(v_filt)
+    dead, ratio = detect_dead(v_filt)
+    return {'spike': spike, 'noisy': noisy, 'dead': dead, 'static': spike | noisy | dead, 'clip_frac': clip_frac, 'rmad': rmad, 'dead_ratio': ratio}
+
+def session_signature(subject_id: int, trial_id: int, labels: list[str], sig: dict[str, np.ndarray]) -> dict:
+    """Build the JSON-serializable per-session signature the #208 collector reads.
+
+    The scan side of the round-trip: takes one session's :func:`static_bad_mask`
+    output ``sig`` plus its contact ``labels`` and emits a plain-Python dict. It
+    carries the two diagnostics ``collate_sessions`` keys off (``clip_frac``,
+    ``rmad``) plus ``dead_ratio`` and the fired detector label-lists for
+    provenance. ``classify_from_signature(labels, clip_frac, rmad)`` reproduces
+    those label-lists exactly (same locked thresholds) — that identity is what
+    lets the collector re-derive the drop from JSON without re-reading voltage."""
+    labels = list(labels)
+
+    def _fired(mask: np.ndarray) -> list[str]:
+        return [labels[i] for i in np.flatnonzero(np.asarray(mask))]
+    return {'subject': int(subject_id), 'trial': int(trial_id), 'labels': labels, 'clip_frac': [float(x) for x in np.asarray(sig['clip_frac'])], 'rmad': [float(x) for x in np.asarray(sig['rmad'])], 'dead_ratio': [float(x) for x in np.asarray(sig['dead_ratio'])], 'spike': _fired(sig['spike']), 'noisy': _fired(sig['noisy']), 'dead': _fired(sig['dead']), 'static': _fired(sig['static'])}
+
+def classify_from_signature(labels: list[str], clip_frac: np.ndarray, rmad: np.ndarray, *, spike_thresh: float=SPIKE_CLIP_FRAC, noisy_z: float=NOISY_Z, dead_ratio: float=DEAD_RATIO) -> dict[str, set[str]]:
+    """Apply the locked thresholds to a precomputed per-contact signature.
+
+    The collector core: maps one session's ``(clip_frac, rmad)`` per-contact
+    arrays (from a fresh scan or a probe-output JSON) to the three fired
+    detector label sets. ``rmad`` is the robust spread of filtered V per
+    contact; ``clip_frac`` the dV/dt>100σ clip-corruption fraction. Shares the
+    cohort-z / ratio math with ``detect_noisy`` / ``detect_dead`` so a JSON
+    collector and a live scan classify identically."""
+    clip_frac = np.asarray(clip_frac, dtype=np.float64)
+    rmad = np.asarray(rmad, dtype=np.float64)
+    spike = {labels[i] for i in np.flatnonzero(clip_frac > spike_thresh)}
+    noisy = {labels[i] for i in np.flatnonzero(cohort_z(rmad) > noisy_z)}
+    med = max(float(np.median(rmad)), EPS)
+    dead = {labels[i] for i in np.flatnonzero(rmad / med < dead_ratio)}
+    return {'spike': spike, 'noisy': noisy, 'dead': dead}
+
+def aggregate_subject(per_trial: list[dict[str, set[str]]]) -> dict[str, frozenset[str]]:
+    """Aggregate per-session detections of one subject into a per-subject drop.
+
+    DP4 forces a per-SUBJECT static set (``voltage_electrode_order`` is per
+    subject, no trial axis), so per-session detections must collapse over the
+    subject's loaded trials. Rule (recommended-pending-Ben, the original
+    locked-11 convention):
+      - ``noisy`` / ``dead`` — chronic ⇒ consistent ⇒ drop if fired in **any**
+        loaded trial.
+      - ``spike`` — drop if fired in a **majority** of the subject's loaded
+        trials (sparse single-trial bursts handled by CLIP, not static).
+
+    ``per_trial`` is a list (one entry per loaded trial) of dicts mapping
+    detector name → set of contact labels that fired. Returns the per-subject
+    ``spike`` / ``noisy`` / ``dead`` / ``static`` frozensets."""
+    n = len(per_trial)
+    if n == 0:
+        empty = frozenset()
+        return {'spike': empty, 'noisy': empty, 'dead': empty, 'static': empty}
+    noisy: set[str] = set()
+    dead: set[str] = set()
+    spike_counts: dict[str, int] = {}
+    for trial in per_trial:
+        noisy |= set(trial.get('noisy', ()))
+        dead |= set(trial.get('dead', ()))
+        for lbl in trial.get('spike', ()):
+            spike_counts[lbl] = spike_counts.get(lbl, 0) + 1
+    spike = {lbl for lbl, c in spike_counts.items() if c > n / 2.0}
+    static = frozenset(spike | noisy | dead)
+    return {'spike': frozenset(spike), 'noisy': frozenset(noisy), 'dead': frozenset(dead), 'static': static}
+
+def collate_sessions(sessions: list[dict]) -> dict[int, dict]:
+    """Collapse per-session detector signatures into a per-subject static drop.
+
+    The #208 collector core: ``sessions`` is one entry per loaded (subject,
+    trial), each a dict with ``subject`` (int), ``trial`` (int), ``labels``
+    (list[str]), ``clip_frac`` and ``rmad`` (per-contact arrays = the
+    :func:`static_bad_mask` diagnostics the DCC precompute dumps). Each session
+    is classified with the locked thresholds via :func:`classify_from_signature`
+    (so the bars live in ONE place), grouped by subject, and aggregated with
+    :func:`aggregate_subject` (chronic noisy/dead any-trial, spike majority).
+
+    Also reports **chronic vs variable**: a contact is *chronic* if it fired
+    (any detector) in EVERY loaded trial of the subject, *variable* if in some
+    but not all. Returns ``{subject: {spike, noisy, dead, static (frozensets),
+    n_trials, chronic, variable}}``."""
+    by_subject: dict[int, list[dict[str, set[str]]]] = {}
+    fired_counts: dict[int, dict[str, int]] = {}
+    for s in sessions:
+        sid = int(s['subject'])
+        cls = classify_from_signature(list(s['labels']), np.asarray(s['clip_frac']), np.asarray(s['rmad']))
+        by_subject.setdefault(sid, []).append(cls)
+        fired = set(cls['spike']) | set(cls['noisy']) | set(cls['dead'])
+        counts = fired_counts.setdefault(sid, {})
+        for lbl in fired:
+            counts[lbl] = counts.get(lbl, 0) + 1
+    out: dict[int, dict] = {}
+    for sid, per_trial in by_subject.items():
+        agg = aggregate_subject(per_trial)
+        n = len(per_trial)
+        counts = fired_counts.get(sid, {})
+        chronic = frozenset((lbl for lbl, c in counts.items() if c == n))
+        variable = frozenset((lbl for lbl, c in counts.items() if 0 < c < n))
+        out[sid] = {**agg, 'n_trials': n, 'chronic': chronic, 'variable': variable}
+    return out
+
+def diff_static_drops(would_be: dict[int, frozenset[str]], locked: dict[int, frozenset[str]]) -> dict[int, dict[str, list[str]]]:
+    """Per-subject diff of a self-calibrated static set against the locked-11
+    convention. ``would_be`` / ``locked`` map subject → static-drop labels.
+    Returns ``{subject: {added, removed, unchanged}}`` (sorted lists) over the
+    UNION of subjects in either map (so an all-clean subject that locked-11
+    dropped shows its removals).
+
+    NOTE: ``aggregate_subject`` / ``collate_sessions`` / ``diff_static_drops``
+    implemented the abandoned per-SUBJECT collapse (one drop per subject over all
+    trials, with chronic-vs-variable + a diff vs locked-11). The per-session
+    decision (Ben 2026-06-18) supersedes that — production uses
+    :func:`per_session_static_drops` instead (one drop per session, no
+    aggregation). These three are retained for the round-trip test + provenance
+    diagnostics; they are NOT on the bake path."""
+    out: dict[int, dict[str, list[str]]] = {}
+    for sid in sorted(set(would_be) | set(locked)):
+        w = set(would_be.get(sid, frozenset()))
+        lk = set(locked.get(sid, frozenset()))
+        out[sid] = {'added': sorted(w - lk), 'removed': sorted(lk - w), 'unchanged': sorted(w & lk)}
+    return out
+
+def per_session_static_drops(sessions: list[dict]) -> dict[tuple[int, int], list[str]]:
+    """Per-session STATIC drop assembler (#208 — the per-session decision).
+
+    Maps each scanned session to its classified STATIC set with NO cross-trial
+    aggregation: each ``(subject, trial)``'s union ``spike ∪ noisy ∪ dead`` IS its
+    drop (electrode quality drifts across a subject's sessions, so the drop is a
+    per-session decision applied to both the eval-Lite and pretrain paths). The
+    bars live in ONE place — ``spike/noisy/dead`` are re-derived from
+    ``clip_frac``/``rmad`` via :func:`classify_from_signature`, and the union is
+    asserted equal to the precompute's emitted ``static`` (identity guard: a
+    mismatch means the locked thresholds drifted between scan-time and
+    collect-time). Returns ``{(subject, trial): sorted(static labels)}`` — every
+    scanned session, including ``[]`` for clean ones."""
+    out: dict[tuple[int, int], list[str]] = {}
+    for s in sessions:
+        key = (int(s['subject']), int(s['trial']))
+        cls = classify_from_signature(list(s['labels']), np.asarray(s['clip_frac']), np.asarray(s['rmad']))
+        static = cls['spike'] | cls['noisy'] | cls['dead']
+        if 'static' in s and set(s['static']) != static:
+            raise ValueError(f"btbank{key[0]}_t{key[1]}: re-derived static {sorted(static)} != precompute-emitted {sorted(s['static'])} (locked-threshold drift between scan and collect)")
+        out[key] = sorted(static)
+    return out
+
+def format_per_session_literal(per_session: dict[tuple[int, int], list[str]], var_name: str='_BT_V14_EXTRA_BAD_ELECTRODES_PER_SESSION') -> str:
+    """Render a per-session drop dict as paste-ready Python source for anatomy.py.
+
+    Sorted by ``(subject, trial)``; single-element tuples carry the trailing
+    comma (``('E1',)``), empty stays ``()``. The output is the exact body of
+    ``anatomy._BT_V14_EXTRA_BAD_ELECTRODES_PER_SESSION`` (#213)."""
+    lines = [f'{var_name}: dict[tuple[int, int], tuple[str, ...]] = {{']
+    for s, t in sorted(per_session):
+        labels = per_session[s, t]
+        body = ', '.join((repr(x) for x in labels))
+        suffix = f'({body},)' if len(labels) == 1 else f'({body})'
+        lines.append(f'    ({s}, {t}): {suffix},')
+    lines.append('}')
+    return '\n'.join(lines)

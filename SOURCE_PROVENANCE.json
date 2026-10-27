@@ -1,0 +1,135 @@
+[
+  {
+    "source": "src/speech_decoding/studies/cogan_dcohort/loader.py",
+    "output": "src/cogan_preprocessing/loader.py",
+    "source_sha256": "5b29e7123a2499c3daaa13bc51ebe39a815a974b2ee1c2371d1b3b34a9bff581",
+    "output_sha256": "1589164c043e7868024edd4949cf05fe4158b9e1c642a54c88afd66c598cda7d",
+    "edits": "Import namespace changes, comment removal, explicit source-root arguments; module documentation replaced where specified. Real-data optional tests omitted."
+  },
+  {
+    "source": "src/speech_decoding/studies/braintreebank/guard1.py",
+    "output": "src/cogan_preprocessing/guard1.py",
+    "source_sha256": "bd02ca57d2d4e98ec45f8c3ed94ed7e03a9eca7059c2072b8d0c9c4af83a746c",
+    "output_sha256": "e149bb3de0b72863202935174f3d88060462c8b11ae17f9ba9438467f73786da",
+    "edits": "Import namespace changes, comment removal, explicit source-root arguments; module documentation replaced where specified. Real-data optional tests omitted."
+  },
+  {
+    "source": "src/speech_decoding/models/v14_converged_v3/cache_index.py",
+    "output": "src/cogan_preprocessing/cache_index.py",
+    "source_sha256": "7da0c652e3e349756110da14a1504f40b3d48059824d8779c27ead5729d079e6",
+    "output_sha256": "ee0f54edeb1f77f74ffd075b97946ab836fd918461502819f74003edf3470fb5",
+    "edits": "Import namespace changes, comment removal, explicit source-root arguments; module documentation replaced where specified. Real-data optional tests omitted."
+  },
+  {
+    "source": "src/speech_decoding/models/v14_converged_v3/corpus_ids.py",
+    "output": "src/cogan_preprocessing/corpus_ids.py",
+    "source_sha256": "8c6b82c016913f9a78b0a0237540fbc0d96f4db59ff183359ebb884f31462ea9",
+    "output_sha256": "e11f8891e1f9e9606df860c5894c20b2320d7b3aebc21d14f8a48585301998b0",
+    "edits": "Import namespace changes, comment removal, explicit source-root arguments; module documentation replaced where specified. Real-data optional tests omitted."
+  },
+  {
+    "source": "scripts/neuroprobe/build_cogan_manifest.py",
+    "output": "scripts/build_cogan_manifest.py",
+    "source_sha256": "09b8068293e091507548fb2dec29428c2970472e360fe9d90b11527858ddc931",
+    "output_sha256": "e6bb7ab38d6fd56924c1df28c481da9b78ce02e6eaff0661cfe83ec0bd221433",
+    "edits": "Import namespace changes, comment removal, explicit source-root arguments; module documentation replaced where specified. Real-data optional tests omitted."
+  },
+  {
+    "source": "scripts/neuroprobe/precompute_guard1_static_cogan.py",
+    "output": "scripts/precompute_guard1_static_cogan.py",
+    "source_sha256": "5a4ad93377a9f92384313a05b60d2cb2ee9a7a5c8921697734eae2e1c0257b6d",
+    "output_sha256": "9a94def87293c466c47310463948ac0121c1c15f698d3fcb1b258b5ff7b05c68",
+    "edits": "Import namespace changes, comment removal, explicit source-root arguments; module documentation replaced where specified. Real-data optional tests omitted."
+  },
+  {
+    "source": "scripts/neuroprobe/collect_guard1_static_cogan.py",
+    "output": "scripts/collect_guard1_static_cogan.py",
+    "source_sha256": "d40d1fb0839a1f4c80e2a6f0e0a9ce1e9bf4a81f3daa10bbe2d57b6e427f605c",
+    "output_sha256": "31133af1a5420ea1ea2aa60a61287d78536a0630d4ea707de7b0047d25443ccf",
+    "edits": "Import namespace changes, comment removal, explicit source-root arguments; module documentation replaced where specified. Real-data optional tests omitted."
+  },
+  {
+    "source": "scripts/neuroprobe/cogan_localize.py",
+    "output": "scripts/cogan_localize.py",
+    "source_sha256": "562e11b5f450bcd8ea8be203a65f20fc59b3b19c4fd858402c542efdc8cb549b",
+    "output_sha256": "78a8b13f2c28d0088da00c9a6f26ac8fee1c4980deb2af19c5410e864f133fff",
+    "edits": "Import namespace changes, comment removal, explicit source-root arguments; module documentation replaced where specified. Real-data optional tests omitted."
+  },
+  {
+    "source": "scripts/neuroprobe/localize_cogan_batch.py",
+    "output": "scripts/localize_cogan_batch.py",
+    "source_sha256": "154533673e0b23a7482ba734f716bbe430942b48c0af7914423672b05329a68d",
+    "output_sha256": "784ac8ae027719fb6ecf2827de58c20b5d8f555c4d9fc189395aa677a7739c96",
+    "edits": "Import namespace changes, comment removal, explicit source-root arguments; module documentation replaced where specified. Real-data optional tests omitted. Argparse help wording removes unsupported accuracy/physiology claims; defaults and numerical functions unchanged."
+  },
+  {
+    "source": "scripts/neuroprobe/precompute_bad_windows_cogan.py",
+    "output": "scripts/precompute_bad_windows_cogan.py",
+    "source_sha256": "5578063ca0d044bd2fa95b4fc122433de32b3624fcfc1f4c027c8e3c76b97a59",
+    "output_sha256": "6a8429f8304ec5b0153fc368342ba4d41b3d9c7d61bd49d18a53699156b17637",
+    "edits": "Import namespace changes, comment removal, explicit source-root arguments; module documentation replaced where specified. Real-data optional tests omitted."
+  },
+  {
+    "source": "scripts/neuroprobe/precompute_bad_windows.py",
+    "output": "src/cogan_preprocessing/guard2.py",
+    "source_sha256": "b31da5a9904268e4f46349822572d68f7ea9b50d4dd5792f18ca0c27c714aea6",
+    "output_sha256": "fb8f58b0c0f4379a7fbcaee225727d9a35265cfd40d1b78140693c2dda5a4f81",
+    "edits": "Exact AST extraction of pure decision functions and their original constants; no raw loader or training imports."
+  },
+  {
+    "source": "src/speech_decoding/studies/cogan_dcohort/test_loader.py",
+    "output": "tests/test_loader.py",
+    "source_sha256": "a7996d5c2ed31453e5d96d4781c2325e8dff02d650ba05ee652d5ab2dcf3a2bd",
+    "output_sha256": "725989496b86c03434fa18d99e94751f0a497380a7f1e340ac7999798f836ed9",
+    "edits": "Import namespace changes, comment removal, explicit source-root arguments; module documentation replaced where specified. Real-data optional tests omitted. Optional private-package vocabulary comparison omitted."
+  },
+  {
+    "source": "src/speech_decoding/studies/braintreebank/test_guard1.py",
+    "output": "tests/test_guard1.py",
+    "source_sha256": "89598769a0cba70c0a57e4cffb961ea49a70c394d8e6a79e374e01bbd00c93e6",
+    "output_sha256": "7b8086cc608e36c1cad3023c6a67b2acdf0c4cb2ce4be5ec762eae2bb6ad31c2",
+    "edits": "Import namespace changes, comment removal, explicit source-root arguments; module documentation replaced where specified. Real-data optional tests omitted. Optional private-package vocabulary comparison omitted."
+  },
+  {
+    "source": "src/speech_decoding/models/v14_converged_v3/test_corpus_ids.py",
+    "output": "tests/test_corpus_ids.py",
+    "source_sha256": "73803da15d719d269f96dce350e3ff4c0e5187f9a41df763ebb847b2995b177c",
+    "output_sha256": "f3dacf76bf2738fd8d091c937021d36b6ba8d59200a78dba3166db81e2db2833",
+    "edits": "Import namespace changes, comment removal, explicit source-root arguments; module documentation replaced where specified. Real-data optional tests omitted. Optional private-package vocabulary comparison omitted."
+  },
+  {
+    "source": "scripts/neuroprobe/test_build_cogan_manifest.py",
+    "output": "tests/test_build_cogan_manifest.py",
+    "source_sha256": "391a5b7914090443bb681ccef867ff77246ee6138a02e4f388e5a59d4cdcba58",
+    "output_sha256": "c5ec6af1d5ce59c1227d654f1f36abca41197991f5a2958f8d6c7dcb5b4cfdad",
+    "edits": "Import namespace changes, comment removal, explicit source-root arguments; module documentation replaced where specified. Real-data optional tests omitted. Optional private-package vocabulary comparison omitted."
+  },
+  {
+    "source": "scripts/neuroprobe/test_precompute_guard1_static_cogan.py",
+    "output": "tests/test_precompute_guard1_static_cogan.py",
+    "source_sha256": "f040d4f40eafd60b0602de1d5a0ec214fff0d71d0969ec4faf6b3f025e65ba5c",
+    "output_sha256": "bb2055ff01dbd3ba7f512250ecbcbc3ff227fb0ee0087c34c43b62e722105c99",
+    "edits": "Import namespace changes, comment removal, explicit source-root arguments; module documentation replaced where specified. Real-data optional tests omitted. Optional private-package vocabulary comparison omitted."
+  },
+  {
+    "source": "scripts/neuroprobe/test_collect_guard1_static_cogan.py",
+    "output": "tests/test_collect_guard1_static_cogan.py",
+    "source_sha256": "f1886f06f5b7503f281d23c0576b4b7b941e95f6baa2f639bb63b908b585fd7f",
+    "output_sha256": "deee1d3ee535383605c04b0abfb576d3fe2ed2f94ad9e7d735a08b9591c05247",
+    "edits": "Import namespace changes, comment removal, explicit source-root arguments; module documentation replaced where specified. Real-data optional tests omitted. Optional private-package vocabulary comparison omitted."
+  },
+  {
+    "source": "scripts/neuroprobe/test_cogan_localize.py",
+    "output": "tests/test_cogan_localize.py",
+    "source_sha256": "a05a77026c5b29902fcebf866509cd0da0d4bcb3934e705e3fac600f63548b3b",
+    "output_sha256": "6f5ae8d668f5b674a003d9759030fa700b1d3afd9dac820355f9048d5a21e109",
+    "edits": "Import namespace changes, comment removal, explicit source-root arguments; module documentation replaced where specified. Real-data optional tests omitted. Optional private-package vocabulary comparison omitted."
+  },
+  {
+    "source": "scripts/neuroprobe/test_precompute_bad_windows_cogan.py",
+    "output": "tests/test_precompute_bad_windows_cogan.py",
+    "source_sha256": "0d1ef8fde947a3a6eb5c80c442bee3660e937fbbab64f8e0f8ce2144dc230f29",
+    "output_sha256": "539bf90b87c2a3704be1eadcebd631d2b57e144ae405c61e469be73a04cb3822",
+    "edits": "Import namespace changes, comment removal, explicit source-root arguments; module documentation replaced where specified. Real-data optional tests omitted. Optional private-package vocabulary comparison omitted."
+  }
+]

@@ -1,0 +1,2 @@
+include scripts/*.py
+include SOURCE_PROVENANCE.json
